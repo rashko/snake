@@ -1,0 +1,154 @@
+<html>
+
+<head>
+    <title>Snake game</title>
+    <style>
+        #snake {
+            border: solid 1px #ccc;
+            position: absolute;
+            /* width: 400px;
+            height: 400px; */
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .cube {
+            width: 20px;
+            height: 20px;
+            float: left;
+            box-sizing: border-box;
+            border: solid 1px #cccccc;
+        }
+
+        .cube.snake {
+            background-color: red;
+        }
+    </style>
+</head>
+
+<div>
+    <div class="controls">
+        <button id="start">Start Game</button>
+        <h1 id=title></h1>
+    </div>
+    <div id="snake"></div>
+    <script type="text/javascript">
+        class Snake {
+            constructor(name) {
+                this.container = document.getElementById('snake');
+                this.debug = document.getElementById('debug');
+                this.startButton = document.getElementById('start');
+                this.title = document.getElementById('title');
+                this.name = name;
+                this.matrixSize = 10;
+                this.matrix = [];
+                this.snakeSize = 4;
+                this.snake = [];
+                this.direction = 'right';
+                this.lastPosition = {};
+                this.init();
+            }
+
+            createMatrix() {
+                this.container.setAttribute("style", `width: ${this.matrixSize * 20}px; height: ${this.matrixSize * 20}px`)
+                var row;
+                for (var x = 0; x < this.matrixSize; x++) {
+                    row = [];
+                    for (var y = 0; y < this.matrixSize; y++) {
+                        var cube = document.createElement('div')
+                        cube.className = 'cube';
+                        this.container.appendChild(cube);
+                        row.push(cube);
+                    }
+                    this.matrix.push(row);
+                }
+            }
+
+            createSnake() {
+                var x = 4, y = 4;
+                for (var i = 0; i < this.snakeSize; i++) {
+                    var el = this.matrix[x][y];
+                    switch (this.direction) {
+                        case 'left': y--; break;
+                        case 'right': y++; break;
+                        case 'top': x--; break;
+                        case 'bottom': x++; break;
+                    }
+                    el.classList.add('snake');
+                    this.snake.push(el);
+                    if (i === this.snakeSize - 2) {
+                        this.lastPosition = {x, y};
+                    }
+                }
+            }
+
+            setupControls() {
+                document.addEventListener('keydown', (event) => {
+                    const keyName = event.key;
+                    switch (keyName) {
+                        case 'ArrowRight':
+                            this.moveSnake('right');
+                            break;
+                        case 'ArrowLeft':
+                            this.moveSnake('left');
+                            break;
+                        case 'ArrowDown':
+                            this.moveSnake('down');
+                            break;
+                        case 'ArrowUp':
+                            this.moveSnake('up');
+                            break;
+                    }
+                    // alert('keydown event\n\n' + 'key: ' + keyName);
+                });
+            }
+
+            moveSnake(direction) {
+                // remove first element from the snake
+                this.direction = direction;
+                var tail = this.snake.shift();
+                var {x, y} = {...this.lastPosition};
+                tail.classList.remove('snake');
+                var head;
+                switch (this.direction) {
+                    case 'left': y--; break;
+                    case 'right': y++; break;
+                    case 'down': x++; break;
+                    case 'up': x--; break;
+                }
+                if(x < 0 || x > this.matrixSize -1 || y < 0 || y > this.matrixSize -1){
+                    this.gameOver();
+                    return false;
+                }
+                head = this.matrix[x][y];
+                head.classList.add('snake');
+                this.lastPosition = {x, y};
+                this.snake.push(head);
+            }
+            
+            startGame(){
+                this.createSnake();
+                this.setupControls();
+                this.title.innerText = 'game started';
+            }
+
+            gameOver(){
+                this.snake.forEach(cube => cube.classList.remove('snake'))
+                this.snake = [];
+                this.title.innerText = 'game over :-(';
+            }
+
+            init() {
+                this.createMatrix();
+                this.startButton.addEventListener('click', () => this.startGame());
+                this.title.innerText = 'Press start';
+            }
+        }
+
+        const game = new Snake("guy");
+        // game.sayHello();
+    </script>
+</body>
+
+</html>
