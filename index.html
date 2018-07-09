@@ -36,10 +36,19 @@
             float: left;
             box-sizing: border-box;
             border: solid 1px #cccccc;
+            position: relative;
         }
 
         .cube.snake {
             background-color: blue;
+        }
+
+        .apple {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: red;
         }
     </style>
 </head>
@@ -78,8 +87,30 @@
                 this.moveCount = 0;
                 this.changeCount = 0;
                 this.score = 0;
-                this.tail = undefined;
+                this.tail = [];
+                this.apple = undefined;
                 this.init();
+            }
+            
+            getRandomArbitrary(min, max) {
+                return Math.floor(Math.random() * (max - min)) + min;
+            }
+
+            addApple() {
+                var x = this.getRandomArbitrary(0, this.matrixSize);
+                var y = this.getRandomArbitrary(0, this.matrixSize);
+                var el = this.matrix[x][y];
+                var apple = document.createElement('div');
+                apple.className = 'apple';
+                el.appendChild(apple);
+                el.classList.add('has-apple');
+                this.apple = apple;
+            }
+
+            eatApple() {
+                this.apple.remove();
+                this.snake = [...this.snake,...this.tail];
+                this.addApple();
             }
 
             createMatrix() {
@@ -96,6 +127,7 @@
                     this.matrix.push(row);
                 }
             }
+             
             increeseSnake(x, y) {
                 var el = this.matrix[x][y];
                 el.classList.add('snake');
@@ -136,7 +168,6 @@
                 this.levelTitle.innerText = `level: ${this.level}, `;
                 window.clearInterval(this.interval);
                 this.interval = window.setInterval(() => this.moveSnake(), this.speed);
-                this.snake.unshift(this.tail);
             }
 
             numberWithCommas(x) {
@@ -145,7 +176,7 @@
 
             updateScore() {
                 this.moveCount++;
-                this.score = this.score + (this.moveCount * 5 * this.level)
+                this.score = this.score + (this.moveCount * this.level)
                 this.scoreTitle.innerText = `score: ${this.numberWithCommas(this.score)}`;
                 if (this.moveCount % 30 === 0) {
                     this.moveCount = 0;
@@ -154,8 +185,12 @@
 
             moveSnake() {
                 var { x, y } = { ...this.snake[this.snake.length - 1].pos };
-                this.tail = this.snake.shift();
-                this.tail.el.classList.remove('snake');
+                var tail = this.snake.shift();
+                tail.el.classList.remove('snake');
+                this.tail.push(tail);
+                if(this.tail.length > 3){
+                    this.tail.shift();
+                }
                 var head;
                 switch (this.direction) {
                     case 'left': y--; break;
@@ -175,29 +210,34 @@
                 }
                 head = this.matrix[x][y];
                 head.classList.add('snake');
+                if(head.classList.contains('has-apple')){
+                    head.classList.remove('has-apple');
+                    this.eatApple();
+                }
                 this.snake.push({ el: head, pos: { x, y } });
                 this.updateScore();
             }
 
             startGame() {
                 this.createSnake();
+                this.addApple();
+                this.score = 0;
+                this.level = 1;
+                this.speed = 300;
+                this.changeCount = 0;
+                this.moveCount = 0;
                 this.startButton.hidden = true;
                 this.title.innerText = 'game started :-)';
                 this.levelTitle.innerText = `level: ${this.level}`;
                 this.interval = window.setInterval(() => this.moveSnake(), this.speed);
             }
 
-                
-
             gameOver() {
                 this.startButton.hidden = false;
                 this.snake.forEach(cube => cube.el.classList.remove('snake'))
                 this.direction = 'right';
                 this.title.innerText = 'game over :-(';
-                this.level = 1;
-                this.speed = 300;
-                this.changeCount = 0;
-                this.moveCount = 0;
+                this.apple.remove();
                 window.clearInterval(this.interval);
             }
 
