@@ -9,12 +9,11 @@
             font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
             text-align: center;
         }
+
         .container {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
+            margin: 0 auto;
         }
+
         #start {
             margin-top: 20px;
             padding: 5px 10px;
@@ -27,7 +26,8 @@
 
         #snake {
             border: solid 1px #ccc;
-            
+            margin: 0 auto;
+
         }
 
         .cube {
@@ -43,12 +43,11 @@
             background-color: blue;
         }
 
-        .apple {
-            position: absolute;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background-color: red;
+        .has-apple {
+            background-image: url(apple.png);
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center center;
         }
     </style>
 </head>
@@ -82,6 +81,7 @@
                 this.snake = [];
                 this.direction = 'right';
                 this.interval = undefined;
+                this.timeout = undefined;
                 this.speed = 300;
                 this.level = 1;
                 this.moveCount = 0;
@@ -91,7 +91,7 @@
                 this.apple = undefined;
                 this.init();
             }
-            
+
             getRandomArbitrary(min, max) {
                 return Math.floor(Math.random() * (max - min)) + min;
             }
@@ -100,17 +100,17 @@
                 var x = this.getRandomArbitrary(0, this.matrixSize);
                 var y = this.getRandomArbitrary(0, this.matrixSize);
                 var el = this.matrix[x][y];
-                var apple = document.createElement('div');
-                apple.className = 'apple';
-                el.appendChild(apple);
                 el.classList.add('has-apple');
-                this.apple = apple;
+                this.apple = el;
             }
 
             eatApple() {
-                this.apple.remove();
-                this.snake = [...this.snake,...this.tail];
-                this.addApple();
+                this.apple.classList.remove('has-apple');
+                this.tail.reverse().forEach((cube, index) => {
+                    this.increeseSnake(cube.pos.x, cube.pos.y, 'tail')
+                })
+                this.score = this.score + (1000 * this.level);
+                this.timeout = window.setTimeout(() => this.addApple(), 5000);
             }
 
             createMatrix() {
@@ -127,11 +127,15 @@
                     this.matrix.push(row);
                 }
             }
-             
-            increeseSnake(x, y) {
+
+            increeseSnake(x, y, side = 'head') {
                 var el = this.matrix[x][y];
                 el.classList.add('snake');
-                this.snake.push({ el, pos: { x, y } });
+                if (side === 'head') {
+                    this.snake.push({ el, pos: { x, y } });
+                } else {
+                    this.snake.unshift({ el, pos: { x, y } });
+                }
             }
             createSnake() {
                 var x = 4, y = 4;
@@ -188,7 +192,7 @@
                 var tail = this.snake.shift();
                 tail.el.classList.remove('snake');
                 this.tail.push(tail);
-                if(this.tail.length > 3){
+                if (this.tail.length > 3) {
                     this.tail.shift();
                 }
                 var head;
@@ -210,8 +214,7 @@
                 }
                 head = this.matrix[x][y];
                 head.classList.add('snake');
-                if(head.classList.contains('has-apple')){
-                    head.classList.remove('has-apple');
+                if (head.classList.contains('has-apple')) {
                     this.eatApple();
                 }
                 this.snake.push({ el: head, pos: { x, y } });
@@ -237,8 +240,9 @@
                 this.snake.forEach(cube => cube.el.classList.remove('snake'))
                 this.direction = 'right';
                 this.title.innerText = 'game over :-(';
-                this.apple.remove();
+                this.apple.classList.remove('has-apple');
                 window.clearInterval(this.interval);
+                window.clearTimeout(this.timeout);
             }
 
             init() {
