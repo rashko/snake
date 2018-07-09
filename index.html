@@ -3,14 +3,31 @@
 <head>
     <title>Snake game</title>
     <style>
-        #snake {
-            border: solid 1px #ccc;
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
             position: absolute;
-            /* width: 400px;
-            height: 400px; */
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
+        }
+        #start {
+            margin-top: 20px;
+            padding: 5px 10px;
+            font-size: 20px;
+            border: none;
+            border-radius: 3px;
+            background-color: blue;
+            color: #ffffff;
+        }
+
+        #snake {
+            border: solid 1px #ccc;
+            
         }
 
         .cube {
@@ -22,17 +39,24 @@
         }
 
         .cube.snake {
-            background-color: red;
+            background-color: blue;
         }
     </style>
 </head>
 
 <div>
-    <div class="controls">
-        <button id="start">Start Game</button>
-        <h1 id=title></h1>
+    <div class="container">
+        <div class="controls">
+            <button id="start">Start Game</button>
+            <h1 id="title"></h1>
+            <h3 id="levelTitle">
+                <span id="level"></span>
+                <span id="score"></span>
+            </h3>
+        </div>
+        <div id="snake"></div>
     </div>
-    <div id="snake"></div>
+
     <script type="text/javascript">
         class Snake {
             constructor(name) {
@@ -40,13 +64,21 @@
                 this.debug = document.getElementById('debug');
                 this.startButton = document.getElementById('start');
                 this.title = document.getElementById('title');
+                this.levelTitle = document.getElementById('level');
+                this.scoreTitle = document.getElementById('score');
                 this.name = name;
-                this.matrixSize = 10;
+                this.matrixSize = 15;
                 this.matrix = [];
-                this.snakeSize = 4;
+                this.snakeSize = 8;
                 this.snake = [];
                 this.direction = 'right';
-                this.lastPosition = {};
+                this.interval = undefined;
+                this.speed = 300;
+                this.level = 1;
+                this.moveCount = 0;
+                this.changeCount = 0;
+                this.score = 0;
+                this.tail = undefined;
                 this.init();
             }
 
@@ -64,21 +96,21 @@
                     this.matrix.push(row);
                 }
             }
-
+            increeseSnake(x, y) {
+                var el = this.matrix[x][y];
+                el.classList.add('snake');
+                this.snake.push({ el, pos: { x, y } });
+            }
             createSnake() {
                 var x = 4, y = 4;
+                this.snake = [];
                 for (var i = 0; i < this.snakeSize; i++) {
-                    var el = this.matrix[x][y];
+                    this.increeseSnake(x, y);
                     switch (this.direction) {
                         case 'left': y--; break;
                         case 'right': y++; break;
                         case 'top': x--; break;
                         case 'bottom': x++; break;
-                    }
-                    el.classList.add('snake');
-                    this.snake.push(el);
-                    if (i === this.snakeSize - 2) {
-                        this.lastPosition = {x, y};
                     }
                 }
             }
@@ -87,29 +119,43 @@
                 document.addEventListener('keydown', (event) => {
                     const keyName = event.key;
                     switch (keyName) {
-                        case 'ArrowRight':
-                            this.moveSnake('right');
-                            break;
-                        case 'ArrowLeft':
-                            this.moveSnake('left');
-                            break;
-                        case 'ArrowDown':
-                            this.moveSnake('down');
-                            break;
-                        case 'ArrowUp':
-                            this.moveSnake('up');
-                            break;
+                        case 'ArrowRight': this.direction = 'right'; break;
+                        case 'ArrowLeft': this.direction = 'left'; break;
+                        case 'ArrowDown': this.direction = 'down'; break;
+                        case 'ArrowUp': this.direction = 'up'; break;
                     }
-                    // alert('keydown event\n\n' + 'key: ' + keyName);
+                    this.changeCount++;
+                    if (this.changeCount % 10 === 0) {
+                        this.upLevel();
+                    }
                 });
             }
+            upLevel() {
+                this.level++;
+                this.speed -= 30;
+                this.levelTitle.innerText = `level: ${this.level}, `;
+                window.clearInterval(this.interval);
+                this.interval = window.setInterval(() => this.moveSnake(), this.speed);
+                this.snake.unshift(this.tail);
+            }
 
-            moveSnake(direction) {
-                // remove first element from the snake
-                this.direction = direction;
-                var tail = this.snake.shift();
-                var {x, y} = {...this.lastPosition};
-                tail.classList.remove('snake');
+            numberWithCommas(x) {
+                return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            }
+
+            updateScore() {
+                this.moveCount++;
+                this.score = this.score + (this.moveCount * 5 * this.level)
+                this.scoreTitle.innerText = `score: ${this.numberWithCommas(this.score)}`;
+                if (this.moveCount % 30 === 0) {
+                    this.moveCount = 0;
+                }
+            }
+
+            moveSnake() {
+                var { x, y } = { ...this.snake[this.snake.length - 1].pos };
+                this.tail = this.snake.shift();
+                this.tail.el.classList.remove('snake');
                 var head;
                 switch (this.direction) {
                     case 'left': y--; break;
@@ -117,30 +163,47 @@
                     case 'down': x++; break;
                     case 'up': x--; break;
                 }
-                if(x < 0 || x > this.matrixSize -1 || y < 0 || y > this.matrixSize -1){
+                if (
+                    x < 0 ||
+                    x > this.matrixSize - 1 ||
+                    y < 0 ||
+                    y > this.matrixSize - 1 ||
+                    this.snake.find(o => o.pos.x === x && o.pos.y === y)
+                ) {
                     this.gameOver();
                     return false;
                 }
                 head = this.matrix[x][y];
                 head.classList.add('snake');
-                this.lastPosition = {x, y};
-                this.snake.push(head);
-            }
-            
-            startGame(){
-                this.createSnake();
-                this.setupControls();
-                this.title.innerText = 'game started';
+                this.snake.push({ el: head, pos: { x, y } });
+                this.updateScore();
             }
 
-            gameOver(){
-                this.snake.forEach(cube => cube.classList.remove('snake'))
-                this.snake = [];
+            startGame() {
+                this.createSnake();
+                this.startButton.hidden = true;
+                this.title.innerText = 'game started :-)';
+                this.levelTitle.innerText = `level: ${this.level}`;
+                this.interval = window.setInterval(() => this.moveSnake(), this.speed);
+            }
+
+                
+
+            gameOver() {
+                this.startButton.hidden = false;
+                this.snake.forEach(cube => cube.el.classList.remove('snake'))
+                this.direction = 'right';
                 this.title.innerText = 'game over :-(';
+                this.level = 1;
+                this.speed = 300;
+                this.changeCount = 0;
+                this.moveCount = 0;
+                window.clearInterval(this.interval);
             }
 
             init() {
                 this.createMatrix();
+                this.setupControls();
                 this.startButton.addEventListener('click', () => this.startGame());
                 this.title.innerText = 'Press start';
             }
@@ -149,6 +212,6 @@
         const game = new Snake("guy");
         // game.sayHello();
     </script>
-</body>
+    </body>
 
 </html>
