@@ -77,7 +77,7 @@
                 this.name = name;
                 this.matrixSize = 15;
                 this.matrix = [];
-                this.snakeSize = 8;
+                this.snakeSize = 1;
                 this.snake = [];
                 this.direction = 'right';
                 this.interval = undefined;
@@ -89,6 +89,7 @@
                 this.score = 0;
                 this.tail = [];
                 this.apple = undefined;
+                this.arrowsControls = this.arrowsControls.bind(this)
                 this.init();
             }
 
@@ -99,6 +100,11 @@
             addApple() {
                 var x = this.getRandomArbitrary(0, this.matrixSize);
                 var y = this.getRandomArbitrary(0, this.matrixSize);
+                // make sure tha apple not created whre the snake is :)
+                var snakePos = this.snake.find(s => {
+                    return s.pos.x === x && s.pos.y === y;
+                });
+                if(snakePos) this.addApple();
                 var el = this.matrix[x][y];
                 el.classList.add('has-apple');
                 this.apple = el;
@@ -107,7 +113,7 @@
             eatApple() {
                 this.apple.classList.remove('has-apple');
                 this.tail.reverse().forEach((cube, index) => {
-                    this.increeseSnake(cube.pos.x, cube.pos.y, 'tail')
+                        this.increeseSnake(cube.pos.x, cube.pos.y, 'tail')
                 })
                 this.score = this.score + (1000 * this.level);
                 this.timeout = window.setTimeout(() => this.addApple(), 5000);
@@ -151,21 +157,23 @@
                 }
             }
 
-            setupControls() {
-                document.addEventListener('keydown', (event) => {
-                    const keyName = event.key;
-                    switch (keyName) {
-                        case 'ArrowRight': this.direction = 'right'; break;
-                        case 'ArrowLeft': this.direction = 'left'; break;
-                        case 'ArrowDown': this.direction = 'down'; break;
-                        case 'ArrowUp': this.direction = 'up'; break;
-                    }
-                    this.changeCount++;
-                    if (this.changeCount % 10 === 0) {
-                        this.upLevel();
-                    }
-                });
+            arrowsControls(event) {
+                const keyName = event.key;
+                switch (keyName) {
+                    case 'ArrowRight': this.direction = 'right'; break;
+                    case 'ArrowLeft': this.direction = 'left'; break;
+                    case 'ArrowDown': this.direction = 'down'; break;
+                    case 'ArrowUp': this.direction = 'up'; break;
+                }
+                if (!this.interval) {
+                    this.interval = window.setInterval(() => this.moveSnake(), this.speed);
+                }
+                this.changeCount++;
+                if (this.changeCount % 10 === 0) {
+                    this.upLevel();
+                }
             }
+            
             upLevel() {
                 this.level++;
                 this.speed -= 30;
@@ -177,11 +185,13 @@
             numberWithCommas(x) {
                 return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
             }
-
+            writeScore(){
+                this.scoreTitle.innerText = `score: ${this.numberWithCommas(this.score)}`;
+            }
             updateScore() {
                 this.moveCount++;
                 this.score = this.score + (this.moveCount * this.level)
-                this.scoreTitle.innerText = `score: ${this.numberWithCommas(this.score)}`;
+                this.writeScore();
                 if (this.moveCount % 30 === 0) {
                     this.moveCount = 0;
                 }
@@ -222,6 +232,7 @@
             }
 
             startGame() {
+                this.setupControls();
                 this.createSnake();
                 this.addApple();
                 this.score = 0;
@@ -231,11 +242,14 @@
                 this.moveCount = 0;
                 this.startButton.hidden = true;
                 this.title.innerText = 'game started :-)';
+                this.writeScore();
                 this.levelTitle.innerText = `level: ${this.level}`;
-                this.interval = window.setInterval(() => this.moveSnake(), this.speed);
             }
-
+            setupControls() {
+                document.addEventListener('keydown', this.arrowsControls, true);
+            }
             gameOver() {
+                document.removeEventListener('keydown', this.arrowsControls, true);
                 this.startButton.hidden = false;
                 this.snake.forEach(cube => cube.el.classList.remove('snake'))
                 this.direction = 'right';
@@ -243,18 +257,18 @@
                 this.apple.classList.remove('has-apple');
                 window.clearInterval(this.interval);
                 window.clearTimeout(this.timeout);
+                this.interval = undefined;
+                this.timeout = undefined;
             }
 
             init() {
                 this.createMatrix();
-                this.setupControls();
                 this.startButton.addEventListener('click', () => this.startGame());
                 this.title.innerText = 'Press start';
             }
         }
 
         const game = new Snake("guy");
-        // game.sayHello();
     </script>
     </body>
 
